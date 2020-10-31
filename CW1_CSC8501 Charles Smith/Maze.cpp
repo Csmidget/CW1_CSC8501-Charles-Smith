@@ -2,23 +2,108 @@
 #include <algorithm>
 #include <vector>
 #include "Maze.h"
+#include <queue>
 
-struct Coords
-{
-	int x;
-	int y;
-};
-
-//Stores a cell on the frontier of maze gen algorithm along with the cell that connects it to the generated maze.
 struct FrontierCell
 {
-	Coords loc;
-	Coords connector;
+	Coord loc;
+	Coord connector;
 };
+
+struct AStarNode
+{
+	Coord pos;
+	AStarNode* cameFrom;
+	int fromStart;
+	int fromEnd;
+	int total;
+};
+
+bool operator==(const AStarNode& _lhs, const AStarNode& _rhs)
+{
+	return (_lhs.pos == _rhs.pos);
+}
+
+struct AStarCompare
+{
+	bool operator()(AStarNode*& lhs, AStarNode*& rhs) { return lhs->total > rhs->total; }
+};
+
+void Maze::GeneratePaths()
+{
+	std::priority_queue<AStarNode*, std::vector<AStarNode*>, AStarCompare> openNodes{};
+	std::vector<AStarNode*> closedNodes{};
+
+	for (int i = 0; i < exitCount; i++)
+	{
+		Coord start = exits[i];
+
+		AStarNode* endNode{ nullptr };
+
+		openNodes.push(new AStarNode{ start,nullptr,0,0,0 });
+
+		while (openNodes.size() > 0)
+		{
+			AStarNode* curr = openNodes.top();
+			openNodes.pop();
+
+			if (std::find_if(closedNodes.begin(), closedNodes.end(), [curr](const AStarNode* val) { return val->pos == curr->pos; }) != closedNodes.end())
+			{
+				delete curr;
+				continue;
+			}
+
+			closedNodes.push_back(curr);
+
+			//Reusing existing paths saves on wasting time retreading the same ground
+			if (curr->pos == centre || map[curr->pos.x][curr->pos.y] == Cell::Path)
+			{
+				endNode = curr;
+				break;
+			}
+
+			const Coord childModifiers[]{ {1,0} ,{0,1},{-1,0},{0,-1} };
+			for (int i = 0; i < 4; i++)
+			{
+				Coord childPos = curr->pos + childModifiers[i];
+
+				if (!InBounds(childPos.x, childPos.y) || map[childPos.x][childPos.y] == Cell::Wall)
+					continue;
+
+				int fromStart = curr->fromStart + 1;
+				int fromEnd = abs(childPos.x - centre.x) + abs(childPos.y - centre.y);
+				openNodes.push(new AStarNode{ childPos,curr,fromStart,fromEnd,fromStart + fromEnd });
+			}
+		}
+
+		if (endNode != nullptr)
+		{
+			endNode = endNode->cameFrom;
+			while (endNode->cameFrom != nullptr)
+			{
+				map[endNode->pos.x][endNode->pos.y] = Cell::Path;
+				endNode = endNode->cameFrom;				
+			}
+		}
+
+		while (openNodes.size() > 0)
+		{
+			delete openNodes.top();
+			openNodes.pop();
+		}
+
+		for (int i = 0; i < closedNodes.size(); i++)
+			delete closedNodes[i];
+		closedNodes.clear();
+
+	}
+}
 
 void Maze::GenerateExits() 
 {
-	std::vector<Coords> possibleExits{};
+	//This solution ensures that no exits will overlap with one another and is of known complexity ( O(n) )
+	std::vector<Coord> possibleExits;
+	possibleExits.reserve(width + height - 2);
 
 	for (int i = 1; i < width / 2 + 1; i++)
 		possibleExits.insert(possibleExits.end(), { {i*2-1,0} , {i*2-1,height - 1} });
@@ -27,11 +112,15 @@ void Maze::GenerateExits()
 
 	std::random_shuffle(possibleExits.begin(), possibleExits.end());
 
-	exits = std::min(exits, (int)possibleExits.size());
+	exitCount = std::min(exitCount, (int)possibleExits.size());
 
-	for (int i = 0; i < exits; i++)
+	exits = new Coord[exitCount];
+
+	for (int i = 0; i < exitCount; i++)
+	{
+		exits[i] = possibleExits[i];
 		map[possibleExits[i].x][possibleExits[i].y] = Cell::Exit;
-
+	}
 }
 
 void Maze::GenerateMaze()
@@ -55,7 +144,7 @@ void Maze::GenerateMaze()
 
 		if (map[currCell.loc.x][currCell.loc.y] != Cell::Wall) continue;
 
-		Coords loc = currCell.loc;
+		Coord loc = currCell.loc;
 
 		map[loc.x][loc.y] = Cell::Empty;
 		map[currCell.connector.x][currCell.connector.y] = Cell::Empty;
@@ -73,24 +162,19 @@ void Maze::GenerateMaze()
 			frontierCells.push_back({ {loc.x, loc.y - 2},{loc.x, loc.y - 1} });
 	}
 
-	Coords mid{ width / 2,height / 2 };
+	centre = {width / 2,height / 2 };
 	for (int x = -1; x <= 1; x++)
 		for (int y = -1; y <= 1; y++)
-			map[mid.x + x][mid.y + y] = Cell::Empty;
-
-	GenerateExits();
-
-	map[mid.x][mid.y] = Cell::Start;
+			map[centre.x + x][centre.y + y] = Cell::Empty;
+	map[centre.x][centre.y] = Cell::Start;
 }
 
 Maze::Maze(int _width, int _height, int _exits)
 {
-	assert(_width >= 5);
-	assert(_height >= 5);
 
 	height = _height;
 	width = _width;
-	exits = _exits;
+	exitCount = _exits;
 
 	map = new Cell* [width];
 
@@ -98,6 +182,8 @@ Maze::Maze(int _width, int _height, int _exits)
 		map[i] = new Cell[height] {};
 
 	GenerateMaze();
+	GenerateExits();
+	GeneratePaths();
 }
 
 Maze::~Maze()
