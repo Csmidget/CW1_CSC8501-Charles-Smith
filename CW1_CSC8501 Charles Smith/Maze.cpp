@@ -114,8 +114,6 @@ void Maze::GenerateExits()
 
 	exitCount = std::min(exitCount, (int)possibleExits.size());
 
-	exits = new Coord[exitCount];
-
 	for (int i = 0; i < exitCount; i++)
 	{
 		exits[i] = possibleExits[i];
@@ -181,6 +179,8 @@ Maze::Maze(int _width, int _height, int _exits)
 	for (int i = 0; i < width; i++)
 		map[i] = new Cell[height] {};
 
+	exits = new Coord[width + height - 2];
+
 	GenerateMaze();
 	GenerateExits();
 	GeneratePaths();
@@ -192,6 +192,7 @@ Maze::~Maze()
 		delete[] map[i];
 
 	delete[] map;
+	delete[] exits;
 }
 
 void PrintMaze(Maze& _maze)

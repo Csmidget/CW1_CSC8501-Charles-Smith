@@ -51,13 +51,12 @@ int main()
     }
 
     std::cout << "\n";
-  //  for (int i = 0; i < 100000; i++)
-  //  {
-   //     std::cout << i << "\n";
+    for (int i = 0; i < 100000; i++)
+    {
+        std::cout << i << "\n";
         Maze maze(width, height, exits);
-      //  Sleep(10);
-   // }
+    }
     
 
-    PrintMaze(maze);
+   // PrintMaze(maze);
 }
