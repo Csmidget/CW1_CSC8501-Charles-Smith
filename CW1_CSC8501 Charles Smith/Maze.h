@@ -2,7 +2,7 @@
 
 enum class Cell{Empty = 0, Wall = 1, Start = 2, Exit = 3, Path = 4,Invalid = 5};
 const int CELLTYPECOUNT = 6;
-const char CELLCHARS[CELLTYPECOUNT] = { ' ','#','S','E','O','?'};
+const char CELLCHARS[CELLTYPECOUNT] = { ' ','#','S','E','o','?'};
 
 struct Coord
 {
@@ -37,7 +37,7 @@ private:
 public:
 	Maze(int _width, int _height,int _exits, bool _generate);
 	Maze(const Maze&); // Copy constructor
-	Maze(Maze&&); //Move constructor
+	Maze(Maze&&) noexcept; //Move constructor
 	~Maze();
 
 	int Height() const { return height; }

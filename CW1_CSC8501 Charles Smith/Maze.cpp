@@ -206,9 +206,8 @@ Maze::Maze(const Maze& _maze)
 
 }
 
-
 //Move constructor
-Maze::Maze(Maze&& _maze)
+Maze::Maze(Maze&& _maze) noexcept
 {
 	width = _maze.width;
 	height = _maze.height;

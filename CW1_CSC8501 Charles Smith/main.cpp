@@ -12,11 +12,6 @@ void ClearCin()
 	std::cin.ignore(INT_MAX, '\n');
 }
 
-void CopyTest(Maze _maze)
-{
-    PrintMaze(_maze);
-}
-
 void NewMaze()
 {
     int width{};
