@@ -24,13 +24,13 @@ private:
 	int exitCount;
 	Coord centre;
 
-	Cell** map;
+	Cell* map;
 	Coord* exits;
 
 	void GenerateMaze();
 	void GenerateExits();
 	void GeneratePaths();
-	Cell* operator[](int _index) { return map[_index]; }
+	Cell* operator[](int _index) { return &map[_index * width]; }
 
 	friend Maze ReadMazeFromFile();
 
@@ -42,7 +42,7 @@ public:
 
 	int Height() const { return height; }
 	int Width() const { return width; }
-	Cell At(int _x, int _y) const { return map[_x][_y]; }
+	Cell At(int _x, int _y) const { return map[_x* width + _y]; }
 
 	bool InBounds(int _x, int _y) const { return _x >= 0 && _x < width && _y >= 0 && _y < height; }
 };
