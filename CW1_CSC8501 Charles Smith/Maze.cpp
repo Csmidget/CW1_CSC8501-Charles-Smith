@@ -1,10 +1,119 @@
-#include <iostream>
-#include <algorithm>
-#include <vector>
-#include <queue>
-#include <fstream>
-#include <string>
 #include "Maze.h"
+
+#include "Helpers.h"
+
+#include <iostream>
+#include <fstream>
+
+//Blank maze
+Maze::Maze() : pathfinder{ this }
+{
+	height = 0;
+	width = 0;
+	exitCount = 0;
+	centre = {};
+	map = new Cell[0];
+	exits = new Coord[0];
+}
+
+Maze::Maze(int _width, int _height, int _exits, bool _generate) : pathfinder{ this }
+{
+
+	height = _height;
+	width = _width;
+	exitCount = _exits;
+	centre = { width / 2,height / 2 };
+	map = new Cell[width * height];
+
+	exits = new Coord[width + height - 2];
+
+	if (_generate)
+	{
+		GenerateMaze();
+		GenerateExits();
+		GeneratePaths();
+	}
+}
+
+//Copy Constructor
+Maze::Maze(const Maze& _maze) : pathfinder{ this }
+{
+	map = nullptr;
+	exits = nullptr;
+	*this = _maze;
+
+	height = _maze.height;
+	width = _maze.width;
+	exitCount = _maze.exitCount;
+	centre = _maze.centre;
+
+	map = new Cell[width * height];
+
+	memcpy(map, _maze.map, sizeof(Cell) * width * height);
+
+	exits = new Coord[width + height - 2];
+	memcpy(exits, _maze.exits, sizeof(Coord) * (width + height - 2));
+}
+
+//Move constructor
+Maze::Maze(Maze&& _maze) noexcept : pathfinder{ this }
+{
+	map = nullptr;
+	exits = nullptr;
+	*this = _maze;
+
+	width = _maze.width;
+	height = _maze.height;
+	exitCount = _maze.exitCount;
+	centre = _maze.centre;
+	map = _maze.map;
+	exits = _maze.exits;
+
+	_maze.map = nullptr;
+	_maze.exits = nullptr;
+}
+
+Maze::~Maze()
+{
+	delete[] map;
+	delete[] exits;
+}
+
+Maze& Maze::operator=(const Maze& _maze)
+{
+	delete[] map;
+
+	height = _maze.height;
+	width = _maze.width;
+	exitCount = _maze.exitCount;
+	centre = _maze.centre;
+
+	map = new Cell[width * height];
+	memcpy(map, _maze.map, sizeof(Cell) * width * height);
+
+	exits = new Coord[width + height - 2];
+	memcpy(exits, _maze.exits, sizeof(Coord) * (width + height - 2));
+
+	return *this;
+}
+
+Maze& Maze::operator=(Maze&& _maze) noexcept
+{
+	width = _maze.width;
+	height = _maze.height;
+	exitCount = _maze.exitCount;
+	centre = _maze.centre;
+
+	Cell* oldMap = map;
+	map = _maze.map;
+	_maze.map = oldMap;
+
+	Coord* oldExits = exits;
+	exits = _maze.exits;
+	_maze.exits = oldExits;
+
+	return *this;
+}
 
 void Maze::GeneratePaths()
 {
@@ -38,6 +147,7 @@ void Maze::GenerateExits()
 	}
 }
 
+//Randomized Prim's algorithm for maze generation.
 void Maze::GenerateMaze()
 {
 	struct FrontierCell
@@ -89,177 +199,35 @@ void Maze::GenerateMaze()
 	(*this)[centre] = Cell::Start;
 }
 
-Maze::Maze(int _width, int _height, int _exits, bool _generate) : pathfinder{this}
-{
-
-	height = _height;
-	width = _width;
-	exitCount = _exits;
-	centre = { width / 2,height / 2 };
-	map = new Cell [width * height];
-
-	exits = new Coord[width + height - 2];
-
-	if (_generate)
-	{
-		GenerateMaze();
-		GenerateExits();
-		GeneratePaths();
-	}
-}
-
-//Copy Constructor
-Maze::Maze(const Maze& _maze) : pathfinder{ this }
-{
-	map = nullptr;
-	exits = nullptr;
-	*this = _maze;
-
-	height = _maze.height;
-	width = _maze.width;
-	exitCount = _maze.exitCount;
-	centre = _maze.centre;
-
-	map = new Cell [width * height];
-
-	memcpy(map, _maze.map,sizeof(Cell) * width * height);
-
-	exits = new Coord[width + height - 2];
-	memcpy(exits, _maze.exits, sizeof(Coord) * (width + height - 2));
-}
-
-//Move constructor
-Maze::Maze(Maze&& _maze) noexcept : pathfinder{ this }
-{
-	map = nullptr;
-	exits = nullptr;
-	*this = _maze;
-
-	width = _maze.width;
-	height = _maze.height;
-	exitCount = _maze.exitCount;
-	centre = _maze.centre;
-	map = _maze.map;
-	exits = _maze.exits;
-
-	_maze.map = nullptr;
-	_maze.exits = nullptr;
-}
-
-Maze::~Maze()
-{
-	delete[] map;
-	delete[] exits;
-}
-
-
-Maze& Maze::operator=(const Maze& _maze)
-{
-	delete[] map;
-
-	height = _maze.height;
-	width = _maze.width;
-	exitCount = _maze.exitCount;
-	centre = _maze.centre;
-
-	map = new Cell[width * height];
-	memcpy(map, _maze.map, sizeof(Cell) * width * height);
-
-	exits = new Coord[width + height - 2];
-	memcpy(exits, _maze.exits, sizeof(Coord) * (width + height - 2));
-
-	return *this;
-}
-
-Maze& Maze::operator=(Maze&& _maze) noexcept
-{
-	width = _maze.width;
-	height = _maze.height;
-	exitCount = _maze.exitCount;
-	centre = _maze.centre;
-
-	Cell* oldMap = map;
-	map = _maze.map;
-	_maze.map = oldMap;
-
-	Coord* oldExits = exits;
-	exits = _maze.exits;
-	_maze.exits = oldExits;
-
-	return *this;
-}
-
-void PrintMaze(const Maze& _maze)
+std::ostream& operator<<(std::ostream& _stream, const Maze& _maze)
 {
 	for (int y{}; y < _maze.Height(); y++)
 	{
 		for (int x{}; x < _maze.Width(); x++)
-			std::cout << (CELLCHARS[(int)_maze.At(x,y)]);
-		std::cout << "\n";
+			_stream << (CELLCHARS[(int)_maze.At(x,y)]);
+		_stream << "\n";
 	}
-	std::cout << "\n";
+	_stream << "\n";
+	return _stream;
 }
 
-void WriteMazeToFile(const Maze& _maze)
+void WriteMazeToFile(const Maze& _maze, const std::string& _fileName)
 {
-	std::string fileName{};
-	std::cout << "Enter file name, including extension: ";
-	std::cin >> fileName;
-
-	while (std::cin.fail())
-	{
-		std::cin.clear();
-		std::cin.ignore(INT_MAX, '\n');
-
-		std::cout << "Invalid name entered, try again: ";
-		std::cin >> fileName;
-	}
-
 	std::ofstream file;
-	file.open(fileName);
-	file.clear();
+	file.open(_fileName);
 
-	for (int x{}; x < _maze.Width(); x++)
-		file << CELLCHARS[(int)_maze.At(x, 0)];
-
-	for (int y{1}; y < _maze.Height(); y++)
-	{
-		file << "\n";
-		for (int x{}; x < _maze.Width(); x++)
-			file << CELLCHARS[(int)_maze.At(x,y)];
-	}
+	file << _maze;
 
 	file.close();
 }
 
-Cell CharToCell(char _char)
-{
-	for (size_t i{}; i < CELLTYPECOUNT; i++)
-		if (CELLCHARS[i] == _char)
-			return (Cell)i;
-
-	return Cell::Invalid;
-}
-
 //Factory function to generate maze from file.
-Maze ReadMazeFromFile()
+Maze ReadMazeFromFile(const std::string& _fileName)
 {
-	std::string fileName{};
-	std::cout << "Enter file name, including extension: ";
-	std::cin >> fileName;
-
-	while (std::cin.fail())
-	{
-		std::cin.clear();
-		std::cin.ignore(INT_MAX, '\n');
-
-		std::cout << "Invalid name entered, try again: ";
-		std::cin >> fileName;
-	} 
-
 	std::ifstream file{};
 	std::string line{};
-	file.open(fileName);
+
+	file.open(_fileName);
 
 	if (file.fail())
 		throw std::exception("Unable to open file.");
@@ -272,7 +240,8 @@ Maze ReadMazeFromFile()
 	while (!file.eof())
 	{
 		std::getline(file, line);
-		height++;
+		if (line.size() != 0)
+			height++;
 	}
 	Maze maze{Maze(width, height, 0, false)};
 
@@ -280,12 +249,15 @@ Maze ReadMazeFromFile()
 	file.seekg(0);
 
 	char inChar{};
-	int currLine{ 0 };
-	int currChar{ 0 };
+	int currLine{};
+	int currChar{};
 
 	for (int y{}; y < height; y++)
 	{
 		getline(file, line);
+
+		if (line.size() == 0)
+			throw std::exception("Provided file is not valid maze.");
 
 		for (int x{}; x < (int)line.size(); x++)
 		{

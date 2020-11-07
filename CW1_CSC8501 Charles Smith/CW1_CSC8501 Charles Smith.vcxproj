@@ -139,13 +139,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Cell.cpp" />
     <ClCompile Include="Coord.cpp" />
+    <ClCompile Include="Helpers.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Maze.cpp" />
     <ClCompile Include="MazePathfinder.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Cell.h" />
     <ClInclude Include="Coord.h" />
+    <ClInclude Include="Helpers.h" />
     <ClInclude Include="Maze.h" />
     <ClInclude Include="MazePathfinder.h" />
   </ItemGroup>

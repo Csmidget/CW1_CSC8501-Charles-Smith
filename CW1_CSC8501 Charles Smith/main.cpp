@@ -1,13 +1,8 @@
+#include "Maze.h"
+#include "Helpers.h"
+
 #include <iostream>
 #include <time.h>
-#include "Maze.h"
-
-//Clear the Cin stream in case a bunch of junk was entered.
-void ClearCin()
-{
-	std::cin.clear();
-	std::cin.ignore(INT_MAX, '\n');
-}
 
 void NewMaze()
 {
@@ -17,64 +12,70 @@ void NewMaze()
 
     std::cout << "Enter maze width (Odd number 5 to 201): ";
     std::cin >> width;
+    Helpers::ClearCin();
     while (width % 2 == 0 || width < 5 || width > 201)
     {
         std::cout << "Invalid width. Please enter an odd number from 5 to 201: ";
         std::cin >> width;
-        ClearCin();
+        Helpers::ClearCin();
     }
 
     std::cout << "Enter maze height (Odd number 5 to 201): ";
     std::cin >> height;
+    Helpers::ClearCin();
     while (height % 2 == 0 || height < 5 || height > 201)
     {
         std::cout << "Invalid height. Please enter an odd number from 5 to 201: ";
         std::cin >> height;
-        ClearCin();
+        Helpers::ClearCin();
     }
 
     int maxExits{ width + height - 2 };
 
     std::cout << "Enter number of exits (0 to " << maxExits << "): ";
     std::cin >> exits;
+    Helpers::ClearCin();
     while (exits < 0 || exits > maxExits)
     {
         std::cout << "Invalid exit count. Please enter a number from 0 to " << maxExits << ":";
         std::cin >> exits;
-        ClearCin();
+        Helpers::ClearCin();
     }
 
     std::cout << "\n";
 
     Maze maze{ width, height, exits, true };
 
-    PrintMaze(maze);
-    char input{};
-    while (input != 'n' && input != 'y')
-    {
-        std::cout << "Save maze to file? (y/n): ";
-        std::cin >> input;
-        ClearCin();
-    }
+    std::cout << maze;
 
-    if (input == 'y')
-        WriteMazeToFile(maze);
+    if (Helpers::ReceiveYN("Save maze to file? (y/n): "))
+        WriteMazeToFile(maze, Helpers::ReceiveFileNameForWrite("File already exists. Overwrite? (y/n): "));
 }
 
 void LoadMaze()
 {
-    Maze maze{ReadMazeFromFile()};
-    PrintMaze(maze);
+    std::string fileName{};
+    do
+        fileName = Helpers::ReceiveFileName();
+    while (!Helpers::FileExists(fileName));
 
-    char input{};
-    while (input != 'n' && input != 'y')
+    Maze maze{};
+    try
     {
-        std::cout << "Save maze to file? (y/n): ";
-        std::cin >> input;
+        maze = ReadMazeFromFile(fileName);
+    }
+    catch (std::exception e)
+    {
+        std::cout << "ERROR: " << e.what() << "\n" << "Enter any key to return to main menu.";
+        std::cin;
+        Helpers::ClearCin();
+        return;
     }
 
-    if (input == 'y')
-        WriteMazeToFile(maze);
+    std::cout << maze;
+
+    if(Helpers::ReceiveYN("Save maze to file? (y/n): "))
+        WriteMazeToFile(maze, Helpers::ReceiveFileNameForWrite("File already exists. Overwrite? (y/n): "));
 }
 
 void DisplayMainMenu()
@@ -97,7 +98,7 @@ void DisplayMainMenu()
 
 int main()
 {
-    srand(time(NULL));
+    srand((unsigned int)time(NULL));
 
     char input{};
     bool end{};
@@ -105,7 +106,7 @@ int main()
     {
         DisplayMainMenu();
         std::cin >> input;
-        ClearCin();
+        Helpers::ClearCin();
 
         switch (input)
         {

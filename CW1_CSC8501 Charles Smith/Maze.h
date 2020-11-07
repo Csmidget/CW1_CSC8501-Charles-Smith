@@ -1,11 +1,9 @@
 #pragma once
 
 #include "Coord.h"
+#include "Cell.h"
 #include "MazePathfinder.h"
-
-enum class Cell{Empty = 0, Wall = 1, Start = 2, Exit = 3, Path = 4,Invalid = 5};
-const int CELLTYPECOUNT{6};
-const char CELLCHARS[CELLTYPECOUNT] { ' ','X','S','E','o','?'};
+#include <string>
 
 class Maze
 {
@@ -26,9 +24,10 @@ private:
 	Cell* operator[](size_t _index) { return &map[_index * height]; }
 	Cell& operator[](Coord _xy) { return map[_xy.x * height + _xy.y]; }
 
-	friend Maze ReadMazeFromFile();
+	friend Maze ReadMazeFromFile(const std::string& _fileName);
 
 public:
+	Maze();
 	Maze(int _width, int _height,int _exits, bool _generate);
 	Maze(const Maze&); // Copy constructor
 	Maze(Maze&&) noexcept; //Move constructor
@@ -46,7 +45,6 @@ public:
 	bool InBounds(Coord _xy) const { return _xy.x >= 0 && _xy.x < width&& _xy.y >= 0 && _xy.y < height; }
 };
 
-Cell CharToCell(char _char);
-void PrintMaze(const Maze& _maze);
-void WriteMazeToFile(const Maze& _maze);
-Maze ReadMazeFromFile();
+std::ostream& operator<<(std::ostream& _stream, const Maze& _maze);
+void WriteMazeToFile(const Maze& _maze, const std::string& _fileName);
+Maze ReadMazeFromFile(const std::string& _fileName);
