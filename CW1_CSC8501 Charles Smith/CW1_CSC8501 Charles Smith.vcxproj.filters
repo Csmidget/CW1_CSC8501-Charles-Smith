@@ -24,9 +24,18 @@
     <ClCompile Include="Coord.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="MazePathfinder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Maze.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MazePathfinder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Coord.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -33,7 +33,7 @@ void NewMaze()
         ClearCin();
     }
 
-    int maxExits = width + height - 2;
+    int maxExits{ width + height - 2 };
 
     std::cout << "Enter number of exits (0 to " << maxExits << "): ";
     std::cin >> exits;
@@ -46,7 +46,7 @@ void NewMaze()
 
     std::cout << "\n";
 
-    Maze maze(width, height, exits, true);
+    Maze maze{ width, height, exits, true };
 
     PrintMaze(maze);
     char input{};
@@ -63,7 +63,7 @@ void NewMaze()
 
 void LoadMaze()
 {
-    Maze maze = ReadMazeFromFile();
+    Maze maze{ReadMazeFromFile()};
     PrintMaze(maze);
 
     char input{};

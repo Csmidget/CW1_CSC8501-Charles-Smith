@@ -8,103 +8,30 @@
 
 void Maze::GeneratePaths()
 {
-	struct AStarNode
+	for (int i{}; i < exitCount; i++)
 	{
-		Coord pos;
-		AStarNode* cameFrom;
-		int fromStart;
-		int fromEnd;
-		int totalCost;
-	};
-
-	struct AStarCompare
-	{
-		bool operator()(AStarNode*& lhs, AStarNode*& rhs) { return lhs->totalCost > rhs->totalCost; }
-	};
-
-	std::priority_queue<AStarNode*, std::vector<AStarNode*>, AStarCompare> openNodes{};
-	std::vector<AStarNode*> closedNodes{};
-
-	for (int i = 0; i < exitCount; i++)
-	{
-		Coord start = exits[i];
-
-		AStarNode* endNode{ nullptr };
-
-		openNodes.push(new AStarNode{ start,nullptr,0,0,0 });
-
-		while (openNodes.size() > 0)
-		{
-			AStarNode* curr = openNodes.top();
-			openNodes.pop();
-
-			if (std::find_if(closedNodes.begin(), closedNodes.end(), [curr](const AStarNode* val) { return val->pos == curr->pos; }) != closedNodes.end())
-			{
-				delete curr;
-				continue;
-			}
-
-			closedNodes.push_back(curr);
-
-			//Reusing existing paths saves on wasting time retreading the same ground
-			if (curr->pos == centre || (*this)[curr->pos.x][curr->pos.y] == Cell::Path)
-			{
-				endNode = curr;
-				break;
-			}
-
-			const Coord childModifiers[]{ {1,0} ,{0,1},{-1,0},{0,-1} };
-			for (int i = 0; i < 4; i++)
-			{
-				Coord childPos = curr->pos + childModifiers[i];
-
-				if (!InBounds(childPos.x, childPos.y) || (*this)[childPos.x][childPos.y] == Cell::Wall)
-					continue;
-
-				int fromStart = curr->fromStart + 1;
-				int fromEnd = abs(childPos.x - centre.x) + abs(childPos.y - centre.y);
-				openNodes.push(new AStarNode{ childPos,curr,fromStart,fromEnd,fromStart + fromEnd });
-			}
-		}
-
-		if (endNode != nullptr)
-		{
-			endNode = endNode->cameFrom;
-			while (endNode->cameFrom != nullptr)
-			{
-				(*this)[endNode->pos.x][endNode->pos.y] = Cell::Path;
-				endNode = endNode->cameFrom;				
-			}
-		}
-
-		while (openNodes.size() > 0)
-		{
-			delete openNodes.top();
-			openNodes.pop();
-		}
-
-		for (int i = 0; i < closedNodes.size(); i++)
-			delete closedNodes[i];
-		closedNodes.clear();
+		auto path{pathfinder(exits[i])};
+		for (size_t j{}; j < path.size(); j++)
+			(*this)[path[j]] = Cell::Path;
 	}
 }
 
 void Maze::GenerateExits() 
 {
 	//This solution ensures that no exits will overlap with one another and is of known complexity ( O(n) )
-	std::vector<Coord> possibleExits;
+	std::vector<Coord> possibleExits{};
 	possibleExits.reserve(width + height - 2);
 
-	for (int i = 1; i < width / 2 + 1; i++)
-		possibleExits.insert(possibleExits.end(), { {i*2-1,0} , {i*2-1,height - 1} });
-	for (int i = 1; i < height / 2 + 1; i++)
-		possibleExits.insert(possibleExits.end(), { {0,i*2-1} , {width- 1 ,i*2-1} });
+	for (int i{2}; i < width; i += 2)
+		possibleExits.insert(possibleExits.end(), { {i - 1,0} , {i - 1,height - 1} });
+	for (int i{2}; i < height; i += 2)
+		possibleExits.insert(possibleExits.end(), { {0,i - 1} , {width - 1 ,i - 1} });
 
 	std::random_shuffle(possibleExits.begin(), possibleExits.end());
 
 	exitCount = std::min(exitCount, (int)possibleExits.size());
 
-	for (int i = 0; i < exitCount; i++)
+	for (int i{}; i < exitCount; i++)
 	{
 		exits[i] = possibleExits[i];
 		(*this)[possibleExits[i].x][possibleExits[i].y] = Cell::Exit;
@@ -119,8 +46,8 @@ void Maze::GenerateMaze()
 		Coord connector;
 	};
 
-	for (int y = 0; y < height; y++)
-		for (int x = 0; x < width; x++)
+	for (int y{}; y < height; y++)
+		for (int x{}; x < width; x++)
 			(*this)[x][y] = Cell::Wall;
 	(*this)[1][1] = Cell::Empty;
 
@@ -131,38 +58,38 @@ void Maze::GenerateMaze()
 
 	while (frontierCells.size() > 0)
 	{
-		int pos = rand() % frontierCells.size();
+		size_t pos{ rand() % frontierCells.size() };
 
-		FrontierCell currCell = frontierCells[pos];
+		FrontierCell currCell{ frontierCells[pos] };
 		frontierCells.erase(frontierCells.begin() + pos);
 
 		if ((*this)[currCell.loc.x][currCell.loc.y] != Cell::Wall) continue;
 
-		Coord loc = currCell.loc;
+		Coord loc{currCell.loc};
 
-		(*this)[loc.x][loc.y] = Cell::Empty;
-		(*this)[currCell.connector.x][currCell.connector.y] = Cell::Empty;
+		(*this)[loc] = Cell::Empty;
+		(*this)[currCell.connector] = Cell::Empty;
 
-		if (loc.x + 2 < width - 1 && (*this)[loc.x + 2][loc.y] == Cell::Wall)
-			frontierCells.push_back({ {loc.x + 2, loc.y},{loc.x + 1, loc.y} });
+		if (loc.x + 2 < width - 1 && (*this)[loc + Coord{ 2,0 }] == Cell::Wall)
+			frontierCells.push_back({ loc + Coord{2,0},loc + Coord{1,0} });
 
-		if (loc.x - 2 > 0 && (*this)[loc.x - 2][loc.y] == Cell::Wall)
-			frontierCells.push_back({ {loc.x - 2, loc.y},{loc.x - 1, loc.y} });
+		if (loc.x - 2 > 0 && (*this)[loc - Coord{ 2,0 }] == Cell::Wall)
+			frontierCells.push_back({ loc - Coord{2,0},loc - Coord{1,0} });
 
-		if (loc.y + 2 < height - 1 && (*this)[loc.x][loc.y + 2] == Cell::Wall)
-			frontierCells.push_back({ {loc.x, loc.y + 2},{loc.x, loc.y + 1} });
+		if (loc.y + 2 < height - 1 && (*this)[loc + Coord{ 0,2 }] == Cell::Wall)
+			frontierCells.push_back({ loc + Coord{0,2},loc + Coord{0,1} });
 
-		if (loc.y - 2 > 0 && (*this)[loc.x][loc.y - 2] == Cell::Wall)
-			frontierCells.push_back({ {loc.x, loc.y - 2},{loc.x, loc.y - 1} });
+		if (loc.y - 2 > 0 && (*this)[loc - Coord{ 0,2 }] == Cell::Wall)
+			frontierCells.push_back({ loc - Coord{0,2},loc - Coord{0,1} });
 	}
 
-	for (int x = -1; x <= 1; x++)
-		for (int y = -1; y <= 1; y++)
-			(*this)[centre.x + x][centre.y + y] = Cell::Empty;
-	(*this)[centre.x][centre.y] = Cell::Start;
+	for (int x{-1}; x <= 1; x++)
+		for (int y{-1}; y <= 1; y++)
+			(*this)[centre + Coord{ x,y }] = Cell::Empty;
+	(*this)[centre] = Cell::Start;
 }
 
-Maze::Maze(int _width, int _height, int _exits, bool _generate)
+Maze::Maze(int _width, int _height, int _exits, bool _generate) : pathfinder{this}
 {
 
 	height = _height;
@@ -182,8 +109,12 @@ Maze::Maze(int _width, int _height, int _exits, bool _generate)
 }
 
 //Copy Constructor
-Maze::Maze(const Maze& _maze)
+Maze::Maze(const Maze& _maze) : pathfinder{ this }
 {
+	map = nullptr;
+	exits = nullptr;
+	*this = _maze;
+
 	height = _maze.height;
 	width = _maze.width;
 	exitCount = _maze.exitCount;
@@ -198,8 +129,12 @@ Maze::Maze(const Maze& _maze)
 }
 
 //Move constructor
-Maze::Maze(Maze&& _maze) noexcept
+Maze::Maze(Maze&& _maze) noexcept : pathfinder{ this }
 {
+	map = nullptr;
+	exits = nullptr;
+	*this = _maze;
+
 	width = _maze.width;
 	height = _maze.height;
 	exitCount = _maze.exitCount;
@@ -217,11 +152,48 @@ Maze::~Maze()
 	delete[] exits;
 }
 
+
+Maze& Maze::operator=(const Maze& _maze)
+{
+	delete[] map;
+
+	height = _maze.height;
+	width = _maze.width;
+	exitCount = _maze.exitCount;
+	centre = _maze.centre;
+
+	map = new Cell[width * height];
+	memcpy(map, _maze.map, sizeof(Cell) * width * height);
+
+	exits = new Coord[width + height - 2];
+	memcpy(exits, _maze.exits, sizeof(Coord) * (width + height - 2));
+
+	return *this;
+}
+
+Maze& Maze::operator=(Maze&& _maze) noexcept
+{
+	width = _maze.width;
+	height = _maze.height;
+	exitCount = _maze.exitCount;
+	centre = _maze.centre;
+
+	Cell* oldMap = map;
+	map = _maze.map;
+	_maze.map = oldMap;
+
+	Coord* oldExits = exits;
+	exits = _maze.exits;
+	_maze.exits = oldExits;
+
+	return *this;
+}
+
 void PrintMaze(const Maze& _maze)
 {
-	for (int y = 0; y < _maze.Height(); y++)
+	for (int y{}; y < _maze.Height(); y++)
 	{
-		for (int x = 0; x < _maze.Width(); x++)
+		for (int x{}; x < _maze.Width(); x++)
 			std::cout << (CELLCHARS[(int)_maze.At(x,y)]);
 		std::cout << "\n";
 	}
@@ -247,13 +219,13 @@ void WriteMazeToFile(const Maze& _maze)
 	file.open(fileName);
 	file.clear();
 
-	for (int x = 0; x < _maze.Width(); x++)
+	for (int x{}; x < _maze.Width(); x++)
 		file << CELLCHARS[(int)_maze.At(x, 0)];
 
-	for (int y = 1; y < _maze.Height(); y++)
+	for (int y{1}; y < _maze.Height(); y++)
 	{
 		file << "\n";
-		for (int x = 0; x < _maze.Width(); x++)
+		for (int x{}; x < _maze.Width(); x++)
 			file << CELLCHARS[(int)_maze.At(x,y)];
 	}
 
@@ -262,7 +234,7 @@ void WriteMazeToFile(const Maze& _maze)
 
 Cell CharToCell(char _char)
 {
-	for (int i = 0; i < CELLTYPECOUNT; i++)
+	for (size_t i{}; i < CELLTYPECOUNT; i++)
 		if (CELLCHARS[i] == _char)
 			return (Cell)i;
 
@@ -285,8 +257,8 @@ Maze ReadMazeFromFile()
 		std::cin >> fileName;
 	} 
 
-	std::ifstream file;
-	std::string line;
+	std::ifstream file{};
+	std::string line{};
 	file.open(fileName);
 
 	if (file.fail())
@@ -294,7 +266,7 @@ Maze ReadMazeFromFile()
 
 	getline(file, line);
 
-	int width = line.size();
+	int width{(int)line.size()};
 	int height{ 1 };
 
 	while (!file.eof())
@@ -302,22 +274,22 @@ Maze ReadMazeFromFile()
 		std::getline(file, line);
 		height++;
 	}
-	Maze maze = Maze(width, height, 0, false);
+	Maze maze{Maze(width, height, 0, false)};
 
 	file.clear();
 	file.seekg(0);
 
-	char inChar;
+	char inChar{};
 	int currLine{ 0 };
 	int currChar{ 0 };
 
-	for (int y = 0; y < height; y++)
+	for (int y{}; y < height; y++)
 	{
 		getline(file, line);
 
-		for (int x = 0; x < line.size(); x++)
+		for (int x{}; x < (int)line.size(); x++)
 		{
-			Cell cell = CharToCell(line[x]);
+			Cell cell{CharToCell(line[x])};
 			maze[x][y] = cell;
 
 			switch (cell)
